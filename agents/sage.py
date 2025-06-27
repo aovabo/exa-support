@@ -5,6 +5,7 @@ from agno.agent import Agent, AgentKnowledge
 from agno.models.openai import OpenAIChat
 from agno.storage.agent.postgres import PostgresAgentStorage
 from agno.tools.duckduckgo import DuckDuckGoTools
+from agno.tools.exa import ExaTools
 from agno.vectordb.pgvector import PgVector, SearchType
 
 from agents.settings import agent_settings
@@ -36,7 +37,7 @@ def get_sage(
             temperature=agent_settings.default_temperature if model_id != "o3-mini" else None,
         ),
         # Tools available to the agent
-        tools=[DuckDuckGoTools()],
+        tools=[DuckDuckGoTools(), ExaTools()],
         # Storage for the agent
         storage=PostgresAgentStorage(table_name="sage_sessions", db_url=db_url),
         # Knowledge base for the agent
