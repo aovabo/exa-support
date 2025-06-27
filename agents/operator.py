@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List, Optional
 
-from agents.sage import get_exa_support_agent
+from agents.exa_support import get_exa_support_agent
 
 
 class AgentType(Enum):

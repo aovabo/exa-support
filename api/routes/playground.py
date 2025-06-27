@@ -2,7 +2,7 @@ from os import getenv
 
 from agno.playground import Playground
 
-from agents.sage import get_exa_support_agent
+from agents.exa_support import get_exa_support_agent
 from workspace.dev_resources import dev_fastapi
 
 ######################################################

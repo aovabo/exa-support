@@ -7,7 +7,7 @@ from agno.memory.agent import AgentRun
 from agno.tools.streamlit.components import check_password
 from agno.utils.log import logger
 
-from agents.sage import get_exa_support_agent
+from agents.exa_support import get_exa_support_agent
 from ui.css import CUSTOM_CSS
 from ui.utils import (
     about_agno,
