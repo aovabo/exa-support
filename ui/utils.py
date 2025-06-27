@@ -9,7 +9,6 @@ from agno.document.reader.docx_reader import DocxReader
 from agno.document.reader.pdf_reader import PDFReader
 from agno.document.reader.text_reader import TextReader
 from agno.document.reader.website_reader import WebsiteReader
-from agno.models.response import ToolExecution
 from agno.utils.log import logger
 
 
@@ -59,7 +58,7 @@ async def add_message(
     agent_name: str,
     role: str,
     content: str,
-    tool_calls: Optional[Union[List[Dict[str, Any]], List[ToolExecution]]] = None,
+    tool_calls: Optional[List[Dict[str, Any]]] = None,
 ) -> None:
     """Safely add a message to the Agent's session state."""
     # if role == "user":
@@ -82,12 +81,14 @@ def display_tool_calls(tool_calls_container, tools):
     try:
         with tool_calls_container.container():
             for tool_call in tools:
-                if isinstance(tool_call, ToolExecution):
+                if hasattr(tool_call, 'tool_name'):
+                    # Handle object with attributes
                     tool_name = tool_call.tool_name
                     tool_args = tool_call.tool_args
-                    content = tool_call.result if tool_call.result else None
+                    content = tool_call.result if hasattr(tool_call, 'result') else None
                     metrics = getattr(tool_call, "metrics", None)
                 else:
+                    # Handle dictionary
                     tool_name = tool_call.get("tool_name", "Unknown Tool")
                     tool_args = tool_call.get("tool_args", {})
                     content = tool_call.get("content")
@@ -330,7 +331,7 @@ def export_chat_history(agent_name: str):
         if msg.get("tool_calls"):
             chat_text += "#### Tool Calls:\n"
             for i, tool_call in enumerate(msg["tool_calls"]):
-                if isinstance(tool_call, ToolExecution):
+                if hasattr(tool_call, 'tool_name'):
                     tool_name = tool_call.tool_name
                     chat_text += f"**{i + 1}. {tool_name}**\n\n"
                     if tool_call.tool_args is not None:
