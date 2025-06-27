@@ -155,7 +155,32 @@ async def example_inputs(agent_name: str) -> None:
             )
 
         # Agent-specific examples
-        if agent_name == "sage":
+        if agent_name == "exa_support":
+            if st.button("How do I use Exa search?"):
+                await add_message(
+                    agent_name,
+                    "user",
+                    "How do I use Exa search? I'm trying to find information about a topic.",
+                )
+            if st.button("My API key isn't working"):
+                await add_message(
+                    agent_name,
+                    "user",
+                    "My API key isn't working. I'm getting authentication errors.",
+                )
+            if st.button("What are Exa's pricing plans?"):
+                await add_message(
+                    agent_name,
+                    "user",
+                    "What are Exa's pricing plans? I need to understand the costs.",
+                )
+            if st.button("How do I integrate Exa with my app?"):
+                await add_message(
+                    agent_name,
+                    "user",
+                    "How do I integrate Exa with my application? I need step-by-step instructions.",
+                )
+        elif agent_name == "sage":
             if st.button("Tell me about Agno"):
                 await add_message(
                     agent_name,
