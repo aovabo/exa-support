@@ -33,14 +33,15 @@ def get_exa_support_agent(
     
     # Only add ExaTools if API key is available
     try:
-        exa_api_key = os.getenv("EXA_API_KEY")
-        if exa_api_key:
+    exa_api_key = os.getenv("EXA_API_KEY")
+    if exa_api_key:
+        try:
             tools.append(ExaTools())
-        elif debug_mode:
-            print("Warning: EXA_API_KEY not found. ExaTools disabled.")
-    except Exception as e:
-        if debug_mode:
-            print(f"Warning: ExaTools not available: {e}")
+        except Exception as e:
+            if debug_mode:
+                print(f"Warning: ExaTools could not be initialized: {e}")
+    elif debug_mode:
+        print("Warning: EXA_API_KEY not found. ExaTools disabled.")
     
     # Only add DiscordTools if token is available
     try:
