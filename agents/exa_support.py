@@ -1,15 +1,16 @@
 from textwrap import dedent
 from typing import Optional
+import os
 
 from agno.agent import Agent, AgentKnowledge
 from agno.models.openai import OpenAIChat
 from agno.storage.agent.postgres import PostgresAgentStorage
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.exa import ExaTools
-from agno.tools.discord import DiscordTools
 from agno.vectordb.pgvector import PgVector, SearchType
 
 from agents.settings import agent_settings
+from agents.knowledge_base import get_knowledge_base
 from db.session import db_url
 
 
@@ -25,7 +26,33 @@ def get_exa_support_agent(
         additional_context += f"You are interacting with the user: {user_id}"
         additional_context += "</context>"
 
-    model_id = model_id or agent_settings.gpt_4_mini
+    model_id = model_id or agent_settings.gpt_4
+
+    # Build tools list - make Discord and Exa optional
+    tools = [DuckDuckGoTools()]
+    
+    # Only add ExaTools if API key is available
+    try:
+        exa_api_key = os.getenv("EXA_API_KEY")
+        if exa_api_key:
+            tools.append(ExaTools())
+        elif debug_mode:
+            print("Warning: EXA_API_KEY not found. ExaTools disabled.")
+    except Exception as e:
+        if debug_mode:
+            print(f"Warning: ExaTools not available: {e}")
+    
+    # Only add DiscordTools if token is available
+    try:
+        from agno.tools.discord import DiscordTools
+        discord_token = os.getenv("DISCORD_BOT_TOKEN")
+        if discord_token:
+            tools.append(DiscordTools(enable_history=True))
+        elif debug_mode:
+            print("Warning: DISCORD_BOT_TOKEN not found. Discord integration disabled.")
+    except ImportError:
+        if debug_mode:
+            print("Warning: DiscordTools not available. Discord integration disabled.")
 
     return Agent(
         name="Exa Support Engineer",
@@ -35,16 +62,14 @@ def get_exa_support_agent(
         model=OpenAIChat(
             id=model_id,
             max_completion_tokens=agent_settings.default_max_completion_tokens,
-            temperature=agent_settings.default_temperature if model_id != "o3-mini" else None,
+            temperature=agent_settings.default_temperature,
         ),
         # Tools available to the agent
-        tools=[DuckDuckGoTools(), ExaTools(), DiscordTools(enable_history=True)],
+        tools=tools,
         # Storage for the agent
         storage=PostgresAgentStorage(table_name="exa_support_sessions", db_url=db_url),
         # Knowledge base for the agent
-        knowledge=AgentKnowledge(
-            vector_db=PgVector(table_name="exa_support_knowledge", db_url=db_url, search_type=SearchType.hybrid)
-        ),
+        knowledge=get_knowledge_base(),
         # Description of the agent
         description=dedent("""\
             You are an Exa Support Engineer Agent designed to provide exceptional customer support for Exa's products and services.
@@ -59,12 +84,13 @@ def get_exa_support_agent(
             1. Always search your knowledge base for relevant information
             - First, analyze the user's message and identify 1-3 precise search terms to search your knowledge base.
             - Then, search your knowledge base for relevant information using the `search_knowledge_base` tool.
+            - Your knowledge base contains comprehensive Exa documentation, API guides, RAG tutorials, and troubleshooting information.
             - Note: You must always search your knowledge base unless you are sure that the user's query is not related to Exa support.
 
             2. Search the web and Discord if no relevant information is found in your knowledge base
             - If knowledge base search yields insufficient results, use the `duckduckgo_search` tool to find relevant information from the web.
             - Use the `exa_search` tool to find Exa-specific information and documentation.
-            - Use Discord tools to check recent conversations and community discussions.
+            - Use Discord tools to check recent conversations and community discussions (if available).
             - Focus on reputable sources and recent information.
 
             3. Support Request Classification and Routing:

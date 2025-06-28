@@ -6,6 +6,7 @@ from agno.agent import Agent
 from agno.memory.agent import AgentRun
 from agno.tools.streamlit.components import check_password
 from agno.utils.log import logger
+from dotenv import load_dotenv
 
 from agents.exa_support import get_exa_support_agent
 from ui.css import CUSTOM_CSS
@@ -21,12 +22,15 @@ from ui.utils import (
     utilities_widget,
 )
 
+load_dotenv()
+
 nest_asyncio.apply()
 
 st.set_page_config(
     page_title="Exa Support Engineer",
     page_icon="🛠️",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 agent_name = "exa_support"
@@ -38,6 +42,20 @@ async def header():
         "<p class='subheading'>An AI-powered support agent that provides exceptional customer service for Exa products and services.</p>",
         unsafe_allow_html=True,
     )
+    
+    # Status indicator
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown(
+            """
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <span class="status-indicator status-online"></span>
+                <span style="color: #059669; font-weight: 600;">🟢 Agent Online</span>
+                <span style="margin-left: 1rem; color: #6b7280;">Ready to help with Exa support</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
 async def body():
@@ -78,16 +96,46 @@ async def body():
     with col1:
         st.markdown("### 💬 Support Chat")
         
-        # Display chat messages
-        for message in st.session_state[agent_name]["messages"]:
-            if message["role"] == "user":
-                st.markdown(f"**👤 You:** {message['content']}")
-            else:
-                st.markdown(f"**🤖 Exa Support:** {message['content']}")
-                
-                # Display tool calls if present
-                if "tool_calls" in message and message["tool_calls"]:
-                    display_tool_calls(st.empty(), message["tool_calls"])
+        # Chat container
+        with st.container():
+            st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+            
+            # Display chat messages
+            for message in st.session_state[agent_name]["messages"]:
+                if message["role"] == "user":
+                    st.markdown(
+                        f"""
+                        <div class="chat-message user-message">
+                            <div class="message-header user-header">
+                                👤 You
+                            </div>
+                            <div class="message-content">
+                                {message['content']}
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.markdown(
+                        f"""
+                        <div class="chat-message assistant-message">
+                            <div class="message-header assistant-header">
+                                🤖 Exa Support
+                            </div>
+                            <div class="message-content">
+                                {message['content']}
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    
+                    # Display tool calls if present
+                    if "tool_calls" in message and message["tool_calls"]:
+                        display_tool_calls(st.empty(), message["tool_calls"])
+
+            st.markdown('</div>', unsafe_allow_html=True)
 
         # Chat input
         if prompt := st.chat_input("Describe your issue or ask a question..."):
@@ -104,37 +152,95 @@ async def body():
             response_container = st.empty()
             tool_calls_container = st.empty()
             
+            # Variables to capture the final response
+            final_content = ""
+            final_tools = []
+            
             # Stream the response
-            async for resp_chunk in st.session_state[agent_name]["agent"].run(
+            run_response = await st.session_state[agent_name]["agent"].arun(
                 prompt, stream=True
-            ):
+            )
+            async for resp_chunk in run_response:
                 if resp_chunk.content:
-                    response_container.markdown(resp_chunk.content)
+                    final_content += resp_chunk.content
+                    response_container.markdown(
+                        f"""
+                        <div class="chat-message assistant-message">
+                            <div class="message-header assistant-header">
+                                🤖 Exa Support
+                            </div>
+                            <div class="message-content">
+                                {final_content}
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
                 
                 if resp_chunk.tools:
+                    final_tools.extend(resp_chunk.tools)
                     display_tool_calls(tool_calls_container, resp_chunk.tools)
             
             # Add assistant message to session state
-            if st.session_state[agent_name]["agent"] is not None:
-                last_run = st.session_state[agent_name]["agent"].memory.get_last_run()
-                if last_run and last_run.response:
-                    await add_message(
-                        agent_name,
-                        "assistant",
-                        last_run.response.content or "",
-                        last_run.response.tools,
-                    )
+            if final_content or final_tools:
+                await add_message(
+                    agent_name,
+                    "assistant",
+                    final_content,
+                    final_tools,
+                )
 
     with col2:
         st.markdown("### 📋 Support Examples")
         
-        # Show example inputs
-        await example_inputs(agent_name)
+        # Examples container
+        with st.container():
+            st.markdown('<div class="examples-container">', unsafe_allow_html=True)
+            
+            # Show example inputs
+            await example_inputs(agent_name)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
         
         st.markdown("### 📊 Support Metrics")
-        if st.session_state[agent_name]["messages"]:
-            st.metric("Messages", len(st.session_state[agent_name]["messages"]))
-            st.metric("Session ID", st.session_state[agent_name].get("session_id", "N/A"))
+        
+        # Metrics container
+        with st.container():
+            if st.session_state[agent_name]["messages"]:
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown(
+                        f"""
+                        <div class="metric-container">
+                            <div class="metric-label">Messages</div>
+                            <div class="metric-value">{len(st.session_state[agent_name]["messages"])}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                
+                with col2:
+                    session_id = st.session_state[agent_name].get("session_id")
+                    session_display = session_id[:8] + "..." if session_id else "New Session"
+                    st.markdown(
+                        f"""
+                        <div class="metric-container">
+                            <div class="metric-label">Session ID</div>
+                            <div class="metric-value" style="font-size: 1rem;">{session_display}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+            else:
+                st.markdown(
+                    """
+                    <div class="info-message">
+                        No messages yet. Start a conversation to see metrics!
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
 
 async def main():
