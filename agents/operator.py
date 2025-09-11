@@ -1,13 +1,11 @@
 from enum import Enum
 from typing import List, Optional
 
-from agents.sage import get_sage
-from agents.scholar import get_scholar
+from agents.exa_support import get_exa_support_agent
 
 
 class AgentType(Enum):
-    SAGE = "sage"
-    SCHOLAR = "scholar"
+    EXA_SUPPORT = "exa_support"
 
 
 def get_available_agents() -> List[str]:
@@ -22,7 +20,7 @@ def get_agent(
     session_id: Optional[str] = None,
     debug_mode: bool = True,
 ):
-    if agent_id == AgentType.SAGE:
-        return get_sage(model_id=model_id, user_id=user_id, session_id=session_id, debug_mode=debug_mode)
+    if agent_id == AgentType.EXA_SUPPORT:
+        return get_exa_support_agent(model_id=model_id, user_id=user_id, session_id=session_id, debug_mode=debug_mode)
     else:
-        return get_scholar(model_id=model_id, user_id=user_id, session_id=session_id, debug_mode=debug_mode)
+        return get_exa_support_agent(model_id=model_id, user_id=user_id, session_id=session_id, debug_mode=debug_mode)

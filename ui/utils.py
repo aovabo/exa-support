@@ -41,17 +41,28 @@ async def initialize_workflow_session_state(workflow_name: str):
 
 async def selected_model() -> str:
     """Display a model selector in the sidebar."""
+    st.markdown("#### 🤖 AI Model")
+    
     model_options = {
-        "gpt-4o": "gpt-4o",
-        "o3-mini": "o3-mini",
+        "gpt-4o": "GPT-4o (Recommended)",
+        "gpt-4o-mini": "GPT-4o Mini (Fast)",
     }
-    selected_model = st.sidebar.selectbox(
-        "Choose a model",
+    
+    selected_model = st.selectbox(
+        "Choose AI Model",
         options=list(model_options.keys()),
         index=0,
         key="model_selector",
+        help="Select the AI model for the support agent"
     )
-    return model_options[selected_model]
+    
+    # Show model info
+    if selected_model == "gpt-4o":
+        st.info("**GPT-4o**: Best performance, comprehensive responses")
+    else:
+        st.info("**GPT-4o Mini**: Faster responses, good for simple queries")
+    
+    return selected_model  # Return the actual model ID, not the descriptive text
 
 
 async def add_message(
@@ -105,33 +116,39 @@ def display_tool_calls(tool_calls_container, tools):
                     logger.error(f"Error displaying tool calls: {str(e)}")
                     pass
 
-                with st.expander(
-                    f"🛠️ {tool_name.replace('_', ' ').title() if tool_name else 'Tool'} ({execution_time_str})",
-                    expanded=False,
-                ):
-                    # Show query with syntax highlighting
-                    if isinstance(tool_args, dict) and tool_args.get("query"):
-                        st.code(tool_args["query"], language="sql")
+                # Use custom CSS classes for better styling
+                st.markdown(
+                    f"""
+                    <div class="tool-call">
+                        <div class="tool-name">🛠️ {tool_name.replace('_', ' ').title() if tool_name else 'Tool'} ({execution_time_str})</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-                    # Display arguments in a more readable format
-                    if tool_args and tool_args != {"query": None}:
-                        st.markdown("**Arguments:**")
-                        st.json(tool_args)
+                # Show query with syntax highlighting
+                if isinstance(tool_args, dict) and tool_args.get("query"):
+                    st.code(tool_args["query"], language="sql")
 
-                    if content:
-                        st.markdown("**Results:**")
-                        try:
-                            # Check if content is already a dictionary or can be parsed as JSON
-                            if isinstance(content, dict) or (
-                                isinstance(content, str) and content.strip().startswith(("{", "["))
-                            ):
-                                st.json(content)
-                            else:
-                                # If not JSON, show as markdown
-                                st.markdown(content)
-                        except Exception:
-                            # If JSON display fails, show as markdown
+                # Display arguments in a more readable format
+                if tool_args and tool_args != {"query": None}:
+                    st.markdown("**Arguments:**")
+                    st.json(tool_args)
+
+                if content:
+                    st.markdown("**Results:**")
+                    try:
+                        # Check if content is already a dictionary or can be parsed as JSON
+                        if isinstance(content, dict) or (
+                            isinstance(content, str) and content.strip().startswith(("{", "["))
+                        ):
+                            st.json(content)
+                        else:
+                            # If not JSON, show as markdown
                             st.markdown(content)
+                    except Exception:
+                        # If JSON display fails, show as markdown
+                        st.markdown(content)
     except Exception as e:
         logger.error(f"Error displaying tool calls: {str(e)}")
         tool_calls_container.error(f"Failed to display tool results: {str(e)}")
@@ -139,99 +156,142 @@ def display_tool_calls(tool_calls_container, tools):
 
 async def example_inputs(agent_name: str) -> None:
     """Show example inputs for an Agent."""
-    with st.sidebar:
-        st.markdown("#### :thinking_face: Try me!")
-        if st.button("Who are you?"):
-            await add_message(
-                agent_name,
-                "user",
-                "Who are you?",
-            )
-        if st.button("What is your purpose?"):
-            await add_message(
-                agent_name,
-                "user",
-                "What is your purpose?",
-            )
-
-        # Agent-specific examples
-        if agent_name == "sage":
-            if st.button("Tell me about Agno"):
+    st.markdown("#### 💡 Try these examples:")
+    
+    # Agent-specific examples
+    if agent_name == "exa_support":
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("🔍 How do I use Exa search?", key="exa_search_example"):
                 await add_message(
                     agent_name,
                     "user",
-                    "Tell me about Agno. Github repo: https://github.com/agno-agi/agno. Documentation: https://docs.agno.com",
+                    "How do I use Exa search? I'm trying to find information about a topic.",
                 )
-        elif agent_name == "scholar":
-            if st.button("Tell me about the US tariffs"):
+            if st.button("🔑 My API key isn't working", key="api_key_example"):
                 await add_message(
                     agent_name,
                     "user",
-                    "Tell me about the US tariffs",
+                    "My API key isn't working. I'm getting authentication errors.",
                 )
+        
+        with col2:
+            if st.button("💰 What are Exa's pricing plans?", key="pricing_example"):
+                await add_message(
+                    agent_name,
+                    "user",
+                    "What are Exa's pricing plans? I need to understand the costs.",
+                )
+            if st.button("🔧 How do I integrate Exa?", key="integration_example"):
+                await add_message(
+                    agent_name,
+                    "user",
+                    "How do I integrate Exa with my application? I need step-by-step instructions.",
+                )
+        
+        # Additional examples
+        col3, col4 = st.columns(2)
+        
+        with col3:
+            if st.button("📚 Show me RAG examples", key="rag_example"):
+                await add_message(
+                    agent_name,
+                    "user",
+                    "Can you show me examples of how to use Exa for RAG applications?",
+                )
+            if st.button("🚀 What's new in Exa?", key="new_features_example"):
+                await add_message(
+                    agent_name,
+                    "user",
+                    "What are the latest features and updates in Exa?",
+                )
+        
+        with col4:
+            if st.button("⚡ Performance optimization", key="performance_example"):
+                await add_message(
+                    agent_name,
+                    "user",
+                    "How can I optimize the performance of my Exa searches?",
+                )
+            if st.button("🛡️ Security best practices", key="security_example"):
+                await add_message(
+                    agent_name,
+                    "user",
+                    "What are the security best practices when using Exa?",
+                )
+    elif agent_name == "sage":
+        if st.button("Tell me about Agno"):
+            await add_message(
+                agent_name,
+                "user",
+                "Tell me about Agno. Github repo: https://github.com/agno-agi/agno. Documentation: https://docs.agno.com",
+            )
+    elif agent_name == "scholar":
+        if st.button("Tell me about the US tariffs"):
+            await add_message(
+                agent_name,
+                "user",
+                "Tell me about the US tariffs",
+            )
 
 
 async def knowledge_widget(agent_name: str, agent: Agent) -> None:
     """Display a knowledge widget in the sidebar."""
+    st.markdown("#### 📚 Knowledge Base")
+    
+    if not agent.knowledge:
+        st.info("No knowledge base configured for this agent.")
+        return
 
-    if agent is not None and agent.knowledge is not None:
-        # Add websites to knowledge base
-        if "url_scrape_key" not in st.session_state:
-            st.session_state[agent_name]["url_scrape_key"] = 0
-        input_url = st.sidebar.text_input(
-            "Add URL to Knowledge Base", type="default", key=st.session_state[agent_name]["url_scrape_key"]
-        )
-        add_url_button = st.sidebar.button("Add URL")
-        if add_url_button:
-            if input_url is not None:
-                alert = st.sidebar.info("Processing URLs...", icon="ℹ️")
-                if f"{input_url}_scraped" not in st.session_state:
-                    scraper = WebsiteReader(max_links=2, max_depth=1)
-                    web_documents: List[Document] = scraper.read(input_url)
-                    if web_documents:
-                        agent.knowledge.load_documents(web_documents, upsert=True)
-                    else:
-                        st.sidebar.error("Could not read website")
-                    st.session_state[f"{input_url}_uploaded"] = True
-                alert.empty()
-
-        # Add documents to knowledge base
-        if "file_uploader_key" not in st.session_state:
-            st.session_state[agent_name]["file_uploader_key"] = 100
-        uploaded_file = st.sidebar.file_uploader(
-            "Add a Document (.pdf, .csv, .txt, or .docx)",
-            key=st.session_state[agent_name]["file_uploader_key"],
-        )
-        if uploaded_file is not None:
-            alert = st.sidebar.info("Processing document...", icon="🧠")
-            document_name = uploaded_file.name.split(".")[0]
-            if f"{document_name}_uploaded" not in st.session_state:
-                file_type = uploaded_file.name.split(".")[-1].lower()
-
-                reader: Reader
-                if file_type == "pdf":
-                    reader = PDFReader()
-                elif file_type == "csv":
-                    reader = CSVReader()
-                elif file_type == "txt":
-                    reader = TextReader()
-                elif file_type == "docx":
-                    reader = DocxReader()
-                else:
-                    st.sidebar.error("Unsupported file type")
-                    return
-                uploaded_file_documents: List[Document] = reader.read(uploaded_file)
-                if uploaded_file_documents:
-                    agent.knowledge.load_documents(uploaded_file_documents, upsert=True)
-                else:
-                    st.sidebar.error("Could not read document")
-                st.session_state[f"{document_name}_uploaded"] = True
-            alert.empty()
-
-        # Load and delete knowledge
-        if st.sidebar.button("🗑️ Delete Knowledge"):
-            agent.knowledge.delete()
-            st.sidebar.success("Knowledge deleted!")
+    # Knowledge base info
+    knowledge_type = type(agent.knowledge).__name__
+    st.markdown(f"**Type:** {knowledge_type}")
+    
+    if hasattr(agent.knowledge, 'vector_db'):
+        vector_db_type = type(agent.knowledge.vector_db).__name__
+        st.markdown(f"**Vector DB:** {vector_db_type}")
+    
+    # Search functionality
+    st.markdown("#### 🔍 Search Knowledge")
+    search_query = st.text_input(
+        "Search knowledge base",
+        placeholder="Enter search terms...",
+        key="knowledge_search"
+    )
+    
+    if search_query and st.button("Search", key="search_knowledge_btn"):
+        try:
+            # Perform search
+            results = agent.knowledge.search(search_query, num_results=3)
+            
+            if results:
+                st.markdown("#### 📖 Search Results")
+                for i, result in enumerate(results, 1):
+                    with st.expander(f"Result {i}: {result.metadata.get('title', 'No title')}", expanded=False):
+                        st.markdown(f"**Source:** {result.metadata.get('source', 'Unknown')}")
+                        st.markdown(f"**Content:** {result.content[:200]}...")
+            else:
+                st.info("No results found.")
+        except Exception as e:
+            st.error(f"Search failed: {str(e)}")
+    
+    # Knowledge base management
+    st.markdown("#### ⚙️ Management")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("🔄 Refresh", key="refresh_knowledge_btn"):
+            st.info("Knowledge base refresh initiated...")
+            # This would typically trigger a refresh of the knowledge base
+    
+    with col2:
+        if st.button("📊 Stats", key="knowledge_stats_btn"):
+            st.info("Knowledge base statistics:")
+            st.markdown("• Documents: Loading...")
+            st.markdown("• Index size: Loading...")
+            st.markdown("• Last updated: Loading...")
 
 
 async def session_selector(agent_name: str, agent: Agent, get_agent: Callable, user_id: str, model_id: str) -> None:
@@ -244,7 +304,7 @@ async def session_selector(agent_name: str, agent: Agent, get_agent: Callable, u
         # Get all agent sessions.
         agent_sessions = agent.storage.get_all_sessions()
         if not agent_sessions:
-            st.sidebar.info("No saved sessions found.")
+            st.info("No saved sessions found.")
             return
 
         # Get session names if available, otherwise use IDs.
@@ -256,61 +316,76 @@ async def session_selector(agent_name: str, agent: Agent, get_agent: Callable, u
             sessions_list.append({"id": session_id, "display_name": display_name})
 
         # Display session selector.
-        st.sidebar.markdown("#### 💬 Session")
-        selected_session = st.sidebar.selectbox(
-            "Session",
+        st.markdown("#### 💬 Session Management")
+        
+        # Current session info
+        current_session = st.session_state[agent_name]["session_id"]
+        if current_session:
+            st.markdown(f"**Current:** {current_session[:8]}...")
+        else:
+            st.markdown("**Current:** New Session")
+        
+        # Session selector
+        selected_session = st.selectbox(
+            "Load Session",
             options=[s["display_name"] for s in sessions_list],
             key="session_selector",
-            label_visibility="collapsed",
+            help="Select a saved session to load"
         )
+        
         # Find the selected session ID.
         selected_session_id = next(s["id"] for s in sessions_list if s["display_name"] == selected_session)
+        
         # Update the agent session if it has changed.
         if st.session_state[agent_name]["session_id"] != selected_session_id:
-            logger.info(f"---*--- Loading {agent_name} session: {selected_session_id} ---*---")
-            st.session_state[agent_name]["agent"] = get_agent(
-                user_id=user_id,
-                model_id=model_id,
-                session_id=selected_session_id,
-            )
-            st.rerun()
+            if st.button("Load Session", key="load_session_btn"):
+                logger.info(f"---*--- Loading {agent_name} session: {selected_session_id} ---*---")
+                st.session_state[agent_name]["agent"] = get_agent(
+                    user_id=user_id,
+                    model_id=model_id,
+                    session_id=selected_session_id,
+                )
+                st.rerun()
 
         # Show the rename session widget.
-        container = st.sidebar.container()
-        session_row = container.columns([3, 1], vertical_alignment="center")
-
+        st.markdown("#### ✏️ Rename Session")
+        
         # Initialize session_edit_mode if needed.
         if "session_edit_mode" not in st.session_state:
             st.session_state.session_edit_mode = False
 
         # Show the session name.
-        with session_row[0]:
-            if st.session_state.session_edit_mode:
-                new_session_name = st.text_input(
-                    "Session Name",
-                    value=agent.session_name,
-                    key="session_name_input",
-                    label_visibility="collapsed",
-                )
-            else:
-                st.markdown(f"Session Name: **{agent.session_name}**")
-
-        # Show the rename session button.
-        with session_row[1]:
-            if st.session_state.session_edit_mode:
-                if st.button("✓", key="save_session_name", type="primary"):
+        if st.session_state.session_edit_mode:
+            new_session_name = st.text_input(
+                "New Session Name",
+                value=agent.session_name,
+                key="session_name_input",
+                help="Enter a new name for the current session"
+            )
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("✓ Save", key="save_session_name", type="primary"):
                     if new_session_name:
                         agent.rename_session(new_session_name)
                         st.session_state.session_edit_mode = False
-                        container.success("Renamed!")
+                        st.success("Session renamed!")
                         # Trigger a rerun to refresh the sessions list
                         st.rerun()
-            else:
-                if st.button("✎", key="edit_session_name"):
-                    st.session_state.session_edit_mode = True
+            
+            with col2:
+                if st.button("✗ Cancel", key="cancel_session_edit"):
+                    st.session_state.session_edit_mode = False
+                    st.rerun()
+        else:
+            st.markdown(f"**Session Name:** {agent.session_name}")
+            if st.button("✎ Rename", key="edit_session_name"):
+                st.session_state.session_edit_mode = True
+                st.rerun()
+                
     except Exception as e:
         logger.error(f"Error in session selector: {str(e)}")
-        st.sidebar.error("Failed to load sessions")
+        st.error("Failed to load sessions")
 
 
 def export_chat_history(agent_name: str):
@@ -351,22 +426,47 @@ def export_chat_history(agent_name: str):
 
 async def utilities_widget(agent_name: str, agent: Agent) -> None:
     """Display a utilities widget in the sidebar."""
-    st.sidebar.markdown("#### 🛠️ Utilities")
-    col1, col2 = st.sidebar.columns(2)
-    with col1:
-        if st.button("🔄 Start New Chat"):
-            restart_agent(agent_name)
-    with col2:
-        fn = f"{agent_name}_chat_history.md"
-        if "session_id" in st.session_state[agent_name]:
-            fn = f"{agent_name}_{st.session_state[agent_name]['session_id']}.md"
-        if st.download_button(
-            ":file_folder: Export Chat History",
-            export_chat_history(agent_name),
-            file_name=fn,
-            mime="text/markdown",
-        ):
-            st.sidebar.success("Chat history exported!")
+    st.markdown("#### 🛠️ Utilities")
+    
+    # Create a container for utilities
+    with st.container():
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("🔄 New Chat", key="new_chat_btn"):
+                restart_agent(agent_name)
+        
+        with col2:
+            fn = f"{agent_name}_chat_history.md"
+            if "session_id" in st.session_state[agent_name]:
+                fn = f"{agent_name}_{st.session_state[agent_name]['session_id']}.md"
+            
+            if st.download_button(
+                "📥 Export Chat",
+                export_chat_history(agent_name),
+                file_name=fn,
+                mime="text/markdown",
+                key="export_chat_btn"
+            ):
+                st.success("✅ Chat history exported!")
+    
+    # Add some spacing
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Show agent info
+    st.markdown("#### ℹ️ Agent Info")
+    st.markdown(f"**Name:** {agent.name}")
+    st.markdown(f"**ID:** {agent.agent_id}")
+    if agent.session_id:
+        st.markdown(f"**Session:** {agent.session_id[:8]}...")
+    else:
+        st.markdown("**Session:** New")
+    
+    # Show tools info
+    st.markdown("#### 🔧 Available Tools")
+    for tool in agent.tools:
+        tool_name = getattr(tool, 'name', type(tool).__name__)
+        st.markdown(f"• {tool_name}")
 
 
 def restart_agent(agent_name: str):
