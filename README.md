@@ -2,7 +2,7 @@
 
 ## Why You Should Hire Me
 
-This project shows my skills as a candidate for the Exa Support Engineer role. I built a real support platform that uses the Exa API, modern AI tools, and a clean user interface. I can:
+I built a real support platform that uses the Exa API, modern AI tools, and a clean user interface. I can:
 - Build and ship real AI support tools
 - Integrate APIs like Exa for search and knowledge
 - Make user-friendly, beautiful UIs
